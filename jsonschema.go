@@ -1,6 +1,9 @@
 package jsonschema
 
-import "errors"
+import (
+	"encoding/json"
+	"errors"
+)
 
 const (
 	TYPE_ARRAY   = `array`
@@ -35,6 +38,7 @@ type JsonSchema struct {
 	// Json reference
 	Schema string `json:"$schema,omitempty"`
 	// Hierarchy
+	Enum                []string               `json:"enum,omitempty"`
 	Parent              *JsonSchema            `json:"-"`
 	Definitions         map[string]*JsonSchema `json:"definitions,omitempty"`
 	DefinitionsChildren []*JsonSchema          `json:"-"`
@@ -42,6 +46,23 @@ type JsonSchema struct {
 	ItemsChildren       []*JsonSchema          `json:"-"`
 	PropertiesChildren  []*JsonSchema          `json:"-"`
 	Properties          map[string]*JsonSchema `json:"properties,omitempty"`
+}
+
+func (s *JsonSchema) AddEnum(i interface{}) error {
+	is, err := marshalToJsonString(i)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range s.Enum {
+		if v == *is {
+			return errors.New("Enum value already exists")
+		}
+	}
+
+	s.Enum = append(s.Enum, *is)
+
+	return nil
 }
 
 func (s *JsonSchema) AddRequired(value string) error {
@@ -72,6 +93,16 @@ func (s *JsonSchema) AddDefinitionChild(child *JsonSchema) {
 
 func (s *JsonSchema) AddItemsChild(child *JsonSchema) {
 	s.ItemsChildren = append(s.ItemsChildren, child)
+}
+
+func marshalToJsonString(value interface{}) (*string, error) {
+	mBytes, err := json.Marshal(value)
+	if err != nil {
+		return nil, err
+	}
+
+	sBytes := string(mBytes)
+	return &sBytes, nil
 }
 
 var JSON_TYPES []string
